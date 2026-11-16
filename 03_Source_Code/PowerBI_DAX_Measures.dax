@@ -1,0 +1,137 @@
+/*
+ShopMetrics - Power BI DAX reference
+Create each measure, calculated table, and calculated column separately
+in Power BI Desktop (Modeling > New measure / New table / New column).
+Table names below match the report model names used in the project.
+*/
+
+// =============================
+// Core event and visitor measures
+// =============================
+Total Events = SUM('Daily Trends'[total_events])
+Total Views = SUM('Daily Trends'[total_views])
+Cart Additions = SUM('Daily Trends'[total_cart_additions])
+Transaction Events = SUM('Daily Trends'[total_purchase_events])
+Total Visitors = MAX('Visitor Funnel'[total_visitors])
+Visitors Viewed = MAX('Visitor Funnel'[visitors_viewed])
+Visitors Added to Cart = MAX('Visitor Funnel'[visitors_added_to_cart])
+Visitors Purchased = MAX('Visitor Funnel'[visitors_purchased])
+Visitor View Rate = DIVIDE([Visitors Viewed], [Total Visitors])
+Visitor Cart Rate = DIVIDE(MAX('Visitor Funnel'[visitor_cart_rate_pct]), 100)
+Visitor Purchase Rate = DIVIDE(MAX('Visitor Funnel'[visitor_purchase_rate_pct]), 100)
+Daily Visitors = SUM('Daily Trends'[unique_visitors])
+
+// =============================
+// Session measures
+// =============================
+Total Sessions = COUNTROWS('Session Summary')
+Avg Session Duration = AVERAGE('Session Summary'[session_duration_minutes])
+Median Session Duration = MEDIAN('Session Summary'[session_duration_minutes])
+Avg Events per Session = AVERAGE('Session Summary'[events_in_session])
+Single Event Sessions = CALCULATE(COUNTROWS('Session Summary'), 'Session Summary'[events_in_session] = 1)
+Single Event Session Rate = DIVIDE([Single Event Sessions], [Total Sessions])
+Longest Session Duration = MAX('Session Summary'[session_duration_minutes])
+
+// =============================
+// Product measures
+// =============================
+Total Product Views = SUM('Product Performance'[total_views])
+Total Cart Additions = SUM('Product Performance'[total_cart_additions])
+Total Transaction Events = SUM('Product Performance'[total_purchase_events])
+Unique Purchased Products = CALCULATE(DISTINCTCOUNT('Product Performance'[itemid]), 'Product Performance'[total_purchase_events] > 0)
+
+// Calculated column in Product Performance:
+// Product ID Label = FORMAT('Product Performance'[itemid], "0")
+
+// =============================
+// Basket measures
+// =============================
+Total Baskets = DISTINCTCOUNT('basket_items'[transactionid])
+Basket Item Records = COUNTROWS('basket_items')
+Basket Unique Products = DISTINCTCOUNT('basket_items'[itemid])
+Average Items per Basket = DIVIDE([Basket Item Records], [Total Baskets])
+Product Pairs Count = COUNTROWS('Product Pairs')
+Total Pair Transactions = SUM('Product Pairs'[pair_transactions])
+
+// Calculated column in Product Pairs:
+// Product Combination = FORMAT('Product Pairs'[item_a], "0") & " + " & FORMAT('Product Pairs'[item_b], "0")
+
+// =============================
+// Hourly measures
+// =============================
+Hourly Total Events = SUM('Hourly Trends'[total_events])
+Hourly Unique Visitors = SUM('Hourly Trends'[unique_visitors])
+
+// =============================
+// Helper table: Visitor Activity (Modeling > New table)
+// =============================
+Visitor Activity =
+DATATABLE(
+    "Activity", STRING,
+    "SortOrder", INTEGER,
+    {
+        {"Viewed", 1},
+        {"Added to Cart", 2},
+        {"Purchased", 3}
+    }
+)
+
+// Measure for Visitor Activity helper table:
+Visitor Activity Count =
+SWITCH(
+    SELECTEDVALUE('Visitor Activity'[Activity]),
+    "Viewed", [Visitors Viewed],
+    "Added to Cart", [Visitors Added to Cart],
+    "Purchased", [Visitors Purchased],
+    BLANK()
+)
+
+// =============================
+// Helper table: Event Mix (Modeling > New table)
+// =============================
+Event Mix =
+DATATABLE(
+    "Event Type", STRING,
+    {
+        {"Product Views"},
+        {"Cart Additions"},
+        {"Transaction Events"}
+    }
+)
+
+// Measure for Event Mix helper table:
+Event Mix Value =
+SWITCH(
+    SELECTEDVALUE('Event Mix'[Event Type]),
+    "Product Views", [Total Views],
+    "Cart Additions", [Cart Additions],
+    "Transaction Events", [Transaction Events],
+    BLANK()
+)
+
+// =============================
+// Calculated columns in Session Summary
+// =============================
+// Session Type = IF('Session Summary'[events_in_session] = 1, "Single-event session", "Multi-event session")
+// Session Duration Group =
+// SWITCH(TRUE(), 'Session Summary'[session_duration_minutes] <= 1, "1. <= 1 minute",
+// 'Session Summary'[session_duration_minutes] <= 3, "2. 1-3 minutes",
+// 'Session Summary'[session_duration_minutes] <= 5, "3. 3-5 minutes", "4. > 5 minutes")
+// Session Duration Sort =
+// SWITCH(TRUE(), 'Session Summary'[session_duration_minutes] <= 1, 1,
+// 'Session Summary'[session_duration_minutes] <= 3, 2,
+// 'Session Summary'[session_duration_minutes] <= 5, 3, 4)
+// Events per Session Group =
+// SWITCH(TRUE(), 'Session Summary'[events_in_session] = 1, "1. 1 event",
+// 'Session Summary'[events_in_session] <= 3, "2. 2-3 events",
+// 'Session Summary'[events_in_session] <= 5, "3. 4-5 events",
+// 'Session Summary'[events_in_session] <= 10, "4. 6-10 events", "5. 11+ events")
+// Events per Session Sort =
+// SWITCH(TRUE(), 'Session Summary'[events_in_session] = 1, 1,
+// 'Session Summary'[events_in_session] <= 3, 2,
+// 'Session Summary'[events_in_session] <= 5, 3,
+// 'Session Summary'[events_in_session] <= 10, 4, 5)
+
+// Calculated columns in Daily Trends:
+// Day of Week = FORMAT('Daily Trends'[event_date], "ddd")
+// Day of Week Sort = WEEKDAY('Daily Trends'[event_date], 2)

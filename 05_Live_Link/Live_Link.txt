@@ -1,0 +1,7 @@
+SHOPMETRICS - POWER BI SERVICE REPORT LINK
+
+URL provided by the project owner:
+https://app.powerbi.com/groups/me/reports/938b67ab-967c-4c2e-9eaa-aaf65796acc1/0bdac3046cb9c9660404?experience=power-bi
+
+Access note:
+This is a Power BI Service report URL in the user's workspace context. Viewers may need to sign in to Power BI and have permission to access the report. This is not a public Publish-to-web embed link.
